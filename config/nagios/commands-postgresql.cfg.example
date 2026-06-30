@@ -1,0 +1,12 @@
+# commands-postgresql.cfg.example
+# Ejemplos de comandos para monitorizar PostgreSQL desde Nagios.
+
+define command {
+    command_name    check_pgsql_remote
+    command_line    /usr/lib/nagios/plugins/check_pgsql -H $HOSTADDRESS$ -p 5432 -U nagios_monitor -d nagiosdatabase
+}
+
+define command {
+    command_name    check_postgres_backends
+    command_line    /usr/lib/nagios/plugins/check_postgres.pl --action=backends --host=$HOSTADDRESS$ --db=nagiosdatabase --dbuser=nagios_monitor --warning=5 --critical=10
+}

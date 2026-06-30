@@ -1,0 +1,9 @@
+# host-postgresql.cfg.example
+# Host remoto PostgreSQL monitorizado desde Nagios.
+
+define host {
+    use         generic-host
+    host_name   postgresql-server
+    alias       PostgreSQL Server
+    address     192.168.14.50
+}

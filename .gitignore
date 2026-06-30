@@ -1,0 +1,25 @@
+# Sistema / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Temporales
+*.tmp
+*.bak
+*.log
+
+# Presentaciones con datos de terceros
+Presentación/
+Presentacion/
+*.pdf
+
+# Variables locales / secretos
+.env
+*.local
+.pgpass
+
+# Backups
+*.backup
+*.dump
+*.sql.gz

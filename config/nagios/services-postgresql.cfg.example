@@ -1,0 +1,16 @@
+# services-postgresql.cfg.example
+# Servicios Nagios para comprobar PostgreSQL.
+
+define service {
+    use                    generic-service
+    host_name              postgresql-server
+    service_description    PostgreSQL - Puerto y conexión
+    check_command          check_pgsql_remote
+}
+
+define service {
+    use                    generic-service
+    host_name              postgresql-server
+    service_description    PostgreSQL - Conexiones activas
+    check_command          check_postgres_backends
+}

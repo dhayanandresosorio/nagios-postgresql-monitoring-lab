@@ -1,0 +1,5 @@
+# pg_hba.conf.example
+# Permitir conexión desde el cliente Nagios hacia PostgreSQL.
+
+# TYPE  DATABASE        USER            ADDRESS            METHOD
+host    nagiosdatabase  nagios_monitor  192.168.14.27/32   scram-sha-256

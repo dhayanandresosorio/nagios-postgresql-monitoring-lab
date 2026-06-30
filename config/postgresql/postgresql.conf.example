@@ -1,0 +1,5 @@
+# postgresql.conf.example
+# Extracto usado para permitir conexiones remotas desde Nagios.
+
+listen_addresses = '*'
+port = 5432
