@@ -4,15 +4,20 @@
 
 Esta práctica consistió en configurar Nagios para monitorizar un servidor PostgreSQL remoto.
 
-La idea fue montar una máquina servidor con PostgreSQL y una máquina cliente con Nagios. Desde Nagios se hicieron comprobaciones sobre el estado del servidor, el puerto de PostgreSQL y la base de datos.
+La idea fue separar el entorno en dos máquinas:
 
-También se añadió una comprobación más avanzada con `check_postgres` para revisar el número de conexiones activas.
+~~~text
+Servidor PostgreSQL
+Cliente Nagios
+~~~
+
+Desde la máquina Nagios se comprueba si PostgreSQL está disponible, si acepta conexiones y si la base de datos responde correctamente.
+
+También se añadió una comprobación más avanzada con `check_postgres`, orientada a revisar el número de conexiones activas.
 
 ---
 
 ## 2. Escenario utilizado
-
-El escenario se montó con dos máquinas Ubuntu dentro de la misma red.
 
 ~~~text
 Servidor PostgreSQL: 192.168.14.50
@@ -27,33 +32,33 @@ Las IPs son de laboratorio y se pueden adaptar a otro entorno.
 
 ## 3. Configuración de PostgreSQL
 
-En el servidor se instaló PostgreSQL:
+En el servidor se instala PostgreSQL:
 
 ~~~bash
 sudo apt update
 sudo apt install -y postgresql postgresql-client
 ~~~
 
-Después se revisó el servicio:
+Después se comprueba el servicio:
 
 ~~~bash
 systemctl status postgresql
 ~~~
 
-Para permitir conexiones desde Nagios, se modificó `postgresql.conf`.
+Para permitir conexiones desde Nagios, se revisa `postgresql.conf`.
 
 ~~~conf
 listen_addresses = '*'
 port = 5432
 ~~~
 
-También se añadió una regla en `pg_hba.conf`.
+También se añade una regla en `pg_hba.conf` para permitir el acceso desde el cliente Nagios:
 
 ~~~conf
 host    nagiosdatabase    nagios_monitor    192.168.14.27/32    scram-sha-256
 ~~~
 
-Después de cambiar la configuración se reinició PostgreSQL.
+Después de cambiar la configuración, se reinicia PostgreSQL:
 
 ~~~bash
 sudo systemctl restart postgresql
@@ -61,9 +66,9 @@ sudo systemctl restart postgresql
 
 ---
 
-## 4. Usuario y base de datos para Nagios
+## 4. Usuario y base de datos de monitorización
 
-Desde `psql` se creó un usuario de monitorización y una base de datos de prueba.
+Desde `psql` se crea un usuario específico para Nagios.
 
 ~~~sql
 CREATE ROLE nagios_monitor WITH LOGIN PASSWORD 'CHANGE_ME_DB_PASSWORD';
@@ -76,21 +81,21 @@ La contraseña real no se publica en el repositorio.
 
 ## 5. Instalación de Nagios
 
-En la máquina cliente se instaló Nagios junto con Apache, PHP y los plugins básicos.
+En la máquina cliente se instala Nagios junto con Apache, PHP y los plugins básicos.
 
 ~~~bash
 sudo apt update
 sudo apt install -y nagios4 apache2 php libapache2-mod-php nagios-plugins
 ~~~
 
-También se activó el módulo CGI de Apache:
+También se activa el módulo CGI de Apache:
 
 ~~~bash
 sudo a2enmod cgi
 sudo systemctl restart apache2
 ~~~
 
-Para entrar al panel web, se creó el usuario `nagiosadmin`.
+Para entrar al panel web se crea el usuario `nagiosadmin`.
 
 ~~~bash
 sudo htpasswd -c /etc/nagios4/htpasswd.users nagiosadmin
@@ -98,21 +103,9 @@ sudo htpasswd -c /etc/nagios4/htpasswd.users nagiosadmin
 
 ---
 
-## 6. Acceso al panel web
+## 6. Configuración de host y servicios
 
-El panel web de Nagios se revisó desde el navegador:
-
-~~~text
-http://localhost/nagios4
-~~~
-
-Desde ahí se puede ver el estado de hosts, servicios y comprobaciones.
-
----
-
-## 7. Configuración de host y servicio
-
-Para monitorizar PostgreSQL, se define un host con la IP del servidor.
+Para monitorizar PostgreSQL se define un host con la IP del servidor.
 
 Archivo de ejemplo:
 
@@ -120,17 +113,22 @@ Archivo de ejemplo:
 config/nagios/host-postgresql.cfg.example
 ~~~
 
-También se define un servicio para comprobar PostgreSQL con `check_pgsql`.
-
-Archivo de ejemplo:
+También se definen servicios para comprobar PostgreSQL:
 
 ~~~text
 config/nagios/services-postgresql.cfg.example
 ~~~
 
+Las comprobaciones principales son:
+
+~~~text
+PostgreSQL - Puerto y conexión
+PostgreSQL - Conexiones activas
+~~~
+
 ---
 
-## 8. Uso de check_pgsql
+## 7. Uso de check_pgsql
 
 `check_pgsql` permite comprobar si Nagios puede conectarse al servicio PostgreSQL.
 
@@ -140,13 +138,13 @@ Ejemplo:
 /usr/lib/nagios/plugins/check_pgsql -H 192.168.14.50 -p 5432 -U nagios_monitor -d nagiosdatabase
 ~~~
 
-Para no dejar la contraseña dentro del comando, se usa `.pgpass`.
+Este check sirve para validar conectividad, autenticación y respuesta básica de la base de datos.
 
 ---
 
-## 9. Uso de .pgpass
+## 8. Uso de .pgpass
 
-El archivo `.pgpass` se crea para el usuario que ejecuta Nagios.
+Para no dejar la contraseña directamente en `commands.cfg`, se utiliza `.pgpass`.
 
 Ruta:
 
@@ -167,32 +165,13 @@ sudo chown nagios:nagios /var/lib/nagios/.pgpass
 sudo chmod 600 /var/lib/nagios/.pgpass
 ~~~
 
-Este punto es importante porque evita poner la contraseña directamente en `commands.cfg`.
+Este punto es importante porque permite que Nagios ejecute checks contra PostgreSQL sin publicar la contraseña en el comando.
 
 ---
 
-## 10. Configuración de commands.cfg
+## 9. Uso de check_postgres
 
-En Nagios se puede definir un comando personalizado para PostgreSQL.
-
-Ejemplo:
-
-~~~text
-config/nagios/commands-postgresql.cfg.example
-~~~
-
-Ahí se separan dos comprobaciones:
-
-- `check_pgsql_remote`: comprueba conexión básica a PostgreSQL.
-- `check_postgres_backends`: comprueba conexiones activas usando `check_postgres`.
-
----
-
-## 11. Plugin check_postgres
-
-Para una comprobación más avanzada se utilizó `check_postgres.pl`.
-
-Este plugin permite revisar métricas específicas de PostgreSQL, como conexiones activas.
+Para una comprobación más avanzada se utiliza `check_postgres.pl`.
 
 Ejemplo:
 
@@ -206,11 +185,11 @@ sudo -u nagios /usr/lib/nagios/plugins/check_postgres.pl \
     --critical=10
 ~~~
 
-Con esto se puede generar un estado `WARNING` o `CRITICAL` según el número de conexiones.
+Con esto se pueden generar estados `WARNING` o `CRITICAL` según el número de conexiones activas.
 
 ---
 
-## 12. Validación de configuración
+## 10. Validación de configuración
 
 Antes de reiniciar Nagios, se valida la configuración.
 
@@ -226,26 +205,26 @@ sudo systemctl restart nagios4
 
 ---
 
-## 13. Pruebas realizadas
+## 11. Pruebas realizadas
 
-En la práctica se probaron diferentes estados:
+Durante la práctica se comprobaron estos puntos:
 
 - servicio PostgreSQL disponible;
 - conexión correcta desde Nagios;
 - comprobación mediante `.pgpass`;
 - validación de configuración;
 - estado OK;
-- estado WARNING al superar cierto número de conexiones;
-- estado CRITICAL al superar el límite crítico.
+- estado WARNING;
+- estado CRITICAL.
 
 Las capturas se conservan en la carpeta `img/`.
 
 ---
 
-## 14. Qué me llevo de esta práctica
+## 12. Qué me llevo de esta práctica
 
 Esta práctica me sirvió para entender mejor cómo se monitoriza un servicio real desde Nagios.
 
-No fue solo instalar Nagios. También hubo que preparar PostgreSQL para aceptar conexiones remotas, crear un usuario de monitorización, configurar `.pgpass`, crear comandos personalizados y revisar errores de configuración antes de reiniciar el servicio.
+No fue solo instalar Nagios. También hubo que preparar PostgreSQL para aceptar conexiones remotas, crear un usuario de monitorización, configurar `.pgpass`, definir comandos personalizados y revisar errores de configuración antes de reiniciar el servicio.
 
 Me parece una práctica útil para perfil de sistemas porque mezcla administración Linux, PostgreSQL, monitorización, servicios, permisos y comprobaciones.

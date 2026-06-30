@@ -2,12 +2,12 @@
 
 Laboratorio de monitorización con Nagios para supervisar un servidor PostgreSQL remoto en Ubuntu.
 
-El proyecto consiste en preparar dos máquinas: una con PostgreSQL y otra con Nagios. Desde Nagios se comprueba el estado del servidor PostgreSQL, el puerto del servicio, la conexión a la base de datos y el número de conexiones activas mediante plugins como `check_pgsql` y `check_postgres`.
+El objetivo del proyecto fue preparar una máquina con PostgreSQL y otra con Nagios, y desde Nagios comprobar el estado del servicio PostgreSQL, la conexión a la base de datos y algunas métricas básicas mediante plugins como `check_pgsql` y `check_postgres`.
 
 ## Tecnologías utilizadas
 
 - Ubuntu 24.04
-- Nagios Core / Nagios4
+- Nagios4
 - Apache
 - PHP
 - PostgreSQL
@@ -25,17 +25,17 @@ Base de datos:       nagiosdatabase
 Usuario PostgreSQL:  nagios_monitor
 ~~~
 
-Las IPs corresponden a un entorno de laboratorio. En otro entorno habría que adaptarlas.
+Las IPs pertenecen a un entorno de laboratorio. En otro entorno habría que adaptarlas.
 
 ## Qué se trabaja
 
-- Instalación de PostgreSQL en una máquina servidor.
+- Instalación de PostgreSQL en un servidor Ubuntu.
 - Configuración de PostgreSQL para aceptar conexiones remotas.
 - Creación de usuario y base de datos para monitorización.
 - Instalación de Nagios4, Apache y plugins.
 - Acceso al panel web de Nagios.
-- Configuración de hosts y servicios.
-- Uso de `check_pgsql` para comprobar PostgreSQL.
+- Configuración de host y servicios.
+- Comprobación remota con `check_pgsql`.
 - Uso de `.pgpass` para evitar contraseñas en comandos.
 - Uso de `check_postgres` para revisar conexiones activas.
 - Validación de configuración con `nagios4 -v`.
@@ -58,7 +58,7 @@ nagios-postgresql-monitoring-lab/
 |   |   |-- pg_hba.conf.example
 |-- docs/
 |   |-- memoria.md
-|   |-- apuntes-originales.md
+|   |-- proceso.md
 |-- img/
 |   |-- 1.png
 |   |-- 2.png
@@ -89,7 +89,7 @@ sudo a2enmod cgi
 sudo systemctl restart apache2
 ~~~
 
-Crear usuario para el panel web:
+Crear usuario para el panel web de Nagios:
 
 ~~~bash
 sudo htpasswd -c /etc/nagios4/htpasswd.users nagiosadmin
@@ -109,7 +109,7 @@ Ejemplo con `check_pgsql`:
 /usr/lib/nagios/plugins/check_pgsql -H 192.168.14.50 -p 5432 -U nagios_monitor -d nagiosdatabase
 ~~~
 
-Para no dejar contraseñas dentro del comando de Nagios, se usa `.pgpass` con permisos restringidos.
+Para no dejar contraseñas directamente dentro de los comandos de Nagios, se utiliza `.pgpass`.
 
 Ejemplo:
 
@@ -117,22 +117,22 @@ Ejemplo:
 192.168.14.50:5432:nagiosdatabase:nagios_monitor:CHANGE_ME_DB_PASSWORD
 ~~~
 
-Permisos:
+Permisos recomendados:
 
 ~~~bash
 sudo chown nagios:nagios /var/lib/nagios/.pgpass
 sudo chmod 600 /var/lib/nagios/.pgpass
 ~~~
 
-## Validación de Nagios
+## Validación de configuración
 
-Antes de reiniciar el servicio, conviene validar la configuración:
+Antes de reiniciar Nagios, se valida la configuración:
 
 ~~~bash
 sudo nagios4 -v /etc/nagios4/nagios.cfg
 ~~~
 
-Después se reinicia Nagios:
+Después se reinicia el servicio:
 
 ~~~bash
 sudo systemctl restart nagios4
@@ -150,7 +150,7 @@ Validación de configuración:
 
 Estado del servicio:
 
-![Estado Nagios](img/systemctl-status-nagios4.png)
+![Estado de Nagios](img/systemctl-status-nagios4.png)
 
 Pruebas de monitorización:
 
@@ -178,16 +178,16 @@ Antes de reutilizar los ejemplos, hay que sustituirlo por una contraseña local.
 
 ## Documentación
 
-La explicación ordenada está en:
+La memoria técnica está en:
 
 ~~~text
 docs/memoria.md
 ~~~
 
-Los apuntes originales están en:
+El proceso paso a paso está en:
 
 ~~~text
-docs/apuntes-originales.md
+docs/proceso.md
 ~~~
 
 Los ejemplos de configuración están en:
