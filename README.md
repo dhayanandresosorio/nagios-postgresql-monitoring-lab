@@ -184,7 +184,7 @@ La explicación ordenada está en:
 docs/memoria.md
 ~~~
 
-Los apuntes originales limpiados están en:
+Los apuntes originales están en:
 
 ~~~text
 docs/apuntes-originales.md
